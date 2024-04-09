@@ -1,4 +1,4 @@
-<!doctype html>
+<!DOCTYPE html>
 <meta charset="utf-8" />
 <meta name="color-scheme" content="dark light" />
 <meta name="robots" content="noindex" />
@@ -32,60 +32,53 @@
   const CONFIG = {
     commandPathDelimiter: '/',
     commandSearchDelimiter: ' ',
-    defaultSearchTemplate: 'https://duckduckgo.com/?q={}',
+    defaultSearchTemplate: 'https://google.com/search?q={}',
     openLinksInNewTab: true,
     suggestionLimit: 4,
   };
 
   const COMMANDS = new Map([
-    ['a', { name: 'Chat', url: 'https://chat.openai.com' }],
-    ['b', { name: 'Dribbble', url: 'https://dribbble.com/shots/recent' }],
-    ['c', { name: 'Calendar', url: 'https://calendar.google.com' }],
+    ['a', { name: 'ChatGPT', url: 'https://chat.openai.com' }],
+    [
+      'b',
+      {
+        name: '[B] Gmail',
+        url: 'https://mail.google.com/mail/u/2/#inbox',
+      },
+    ],
     [
       'd',
       {
-        name: 'Drive',
-        url: 'https://drive.google.com/drive/u/0/my-drive',
+        name: '[B] Drive',
+        url: 'https://drive.google.com/drive/u/2/my-drive',
       },
     ],
     ['f', { name: 'Figma', url: 'https://www.figma.com' }],
     ['g', { name: 'GitHub', url: 'https://github.com' }],
-    ['k', { name: 'Keep', url: 'https://keep.google.com' }],
     ['n', { name: 'Notion', url: 'https://www.notion.so' }],
-    [
-      'p',
-      {
-        name: 'Proton',
-        suggestions: ['drive.proton.me/u/0/'],
-        url: 'https://mail.proton.me/u/0/inbox',
-      },
-    ],
     [
       'r',
       {
         name: 'Reddit',
-        suggestions: [
-          'r/r/selfhosted',
-          'r/r/dataisbeautiful',
-          'r/r/fujix',
-          'r/r/leetcode',
-        ],
+        suggestions: ['r/r/selfhosted', 'r/r/dataisbeautiful'],
         url: 'https://reddit.com',
       },
     ],
-    ['s', { name: 'Supabase', url: 'https://supabase.com/dashboard/projects' }],
-    ['t', { name: 'Translate', url: 'https://www.deepl.com/translator' }],
+    [
+      't',
+      {
+        name: 'Translate',
+        searchTemplate: '/?sl=auto&tl=pt&text={}&op=translate',
+        url: 'https://translate.google.com',
+      },
+    ],
     ['v', { name: 'Vercel', url: 'https://vercel.com/dashboard' }],
+    ['w', { name: 'WhatsApp', url: 'https://web.whatsapp.com' }],
     [
       'x',
       {
-        name: 'xvvvyz',
-        suggestions: [
-          'jelly.xvvvyz.xyz',
-          'torrent.xvvvyz.xyz',
-          'proxy.xvvvyz.xyz',
-        ],
-        url: 'https://pomodoro.xvvvyz.xyz',
+        name: 'X',
+        url: 'https://x.com',
       },
     ],
     [
@@ -93,7 +86,7 @@
       {
         name: 'YouTube',
         searchTemplate: '/results?search_query={}',
-        url: 'https://youtube.com/feed/subscriptions',
+        url: 'https://youtube.com',
       },
     ],
     [
@@ -101,7 +94,7 @@
       {
         name: 'localhost',
         searchTemplate: ':{}',
-        suggestions: ['0 54323', '0 54324'],
+        suggestions: ['0 54323', '0 54324', '0 8081', '0 8080'],
         url: 'http://localhost:3000',
       },
     ],
@@ -361,7 +354,7 @@
       return s.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&');
     }
 
-    static #fetchDuckDuckGoSuggestions(search) {
+    static #fetchSuggestions(search) {
       return new Promise((resolve) => {
         window.autocompleteCallback = (res) => {
           const suggestions = [];
@@ -376,7 +369,7 @@
 
         const script = document.createElement('script');
         document.querySelector('head').appendChild(script);
-        script.src = `https://duckduckgo.com/ac/?callback=autocompleteCallback&q=${search}`;
+        script.src = `https://www.google.com/complete/search?client=brave&q=${search}`;
         script.onload = script.remove;
       });
     }
@@ -475,16 +468,18 @@
 
     #onInput = async () => {
       const oq = Search.#parseQuery(this.#input.value);
-
+      
       if (!oq.query) {
         this.#close();
         return;
       }
-
+      
       let suggestions = COMMANDS.get(oq.query)?.suggestions ?? [];
 
+      console.log(oq.search && suggestions.length < CONFIG.suggestionLimit)
+
       if (oq.search && suggestions.length < CONFIG.suggestionLimit) {
-        const res = await Search.#fetchDuckDuckGoSuggestions(oq.search);
+        const res = await Search.#fetchSuggestions(oq.search);
 
         suggestions = suggestions.concat(
           oq.splitBy
