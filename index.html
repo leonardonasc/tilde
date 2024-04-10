@@ -39,29 +39,51 @@
 
   const COMMANDS = new Map([
     ['a', { name: 'ChatGPT', url: 'https://chat.openai.com' }],
-    [
-      'b',
-      {
-        name: '[B] Gmail',
-        url: 'https://mail.google.com/mail/u/2/#inbox',
-      },
-    ],
+    ['b', { name: 'BluePaper', url: 'https://bluepaper.io' }],
     [
       'd',
       {
-        name: '[B] Drive',
+        name: 'Drive',
         url: 'https://drive.google.com/drive/u/2/my-drive',
       },
     ],
     ['f', { name: 'Figma', url: 'https://www.figma.com' }],
-    ['g', { name: 'GitHub', url: 'https://github.com' }],
+    [
+      'g',
+      {
+        name: 'GitHub',
+        suggestions: ['g/caiodomingues', 'g/bluepaper-io'],
+        searchTemplate: '/search?q={}',
+        url: 'https://github.com',
+      },
+    ],
+    [
+      'm',
+      {
+        name: 'Gmail',
+        suggestions: ['m/mail/u/0', 'm/mail/u/1', 'm/mail/u/2'],
+        searchTemplate: '/{}/#inbox',
+        url: 'https://mail.google.com/mail/u',
+      },
+    ],
     ['n', { name: 'Notion', url: 'https://www.notion.so' }],
     [
       'r',
       {
         name: 'Reddit',
-        suggestions: ['r/r/selfhosted', 'r/r/dataisbeautiful'],
+        suggestions: [
+          'r/r/selfhosted',
+          'r/r/dataisbeautiful',
+          'r/r/mechanicalkeyboards',
+        ],
         url: 'https://reddit.com',
+      },
+    ],
+    [
+      's',
+      {
+        name: 'Shortner',
+        url: 'https://shortn.blue',
       },
     ],
     [
@@ -94,7 +116,7 @@
       {
         name: 'localhost',
         searchTemplate: ':{}',
-        suggestions: ['0 54323', '0 54324', '0 8081', '0 8080'],
+        suggestions: ['0 8081', '0 8080', '0 3333', '0 3001'],
         url: 'http://localhost:3000',
       },
     ],
@@ -294,6 +316,13 @@
       transform: translateY(0);
     }
 
+    #description {
+      color: var(--color-text-subtle);
+      font-size: 0.8rem;
+      margin: var(--space) 0 0;
+      text-align: center;
+    }
+
     .match {
       color: var(--color-text-subtle);
       transition: color var(--transition-speed);
@@ -313,6 +342,7 @@
     <form autocomplete="off" class="form" method="dialog" spellcheck="false">
       <input class="input" title="search" type="text" />
       <menu class="suggestions"></menu>
+      <p id="description"></p>
     </form>
   </dialog>
 </template>
@@ -333,12 +363,14 @@
     #form;
     #input;
     #suggestions;
+    #description;
 
     constructor() {
       super();
       this.attachShadow({ mode: 'open' });
       const template = document.getElementById('search-template');
       const clone = template.content.cloneNode(true);
+      this.#description = clone.querySelector('#description');
       this.#dialog = clone.querySelector('.dialog');
       this.#form = clone.querySelector('.form');
       this.#input = clone.querySelector('.input');
@@ -464,19 +496,27 @@
       const next = this.#suggestions.children[nextIndex];
       if (next) next.querySelector('.suggestion').focus();
       else this.#input.focus();
+
+      this.#description.innerText =
+        'Press enter to go to the selected suggestion';
     }
 
     #onInput = async () => {
       const oq = Search.#parseQuery(this.#input.value);
-      
+
       if (!oq.query) {
         this.#close();
         return;
       }
-      
-      let suggestions = COMMANDS.get(oq.query)?.suggestions ?? [];
 
-      console.log(oq.search && suggestions.length < CONFIG.suggestionLimit)
+      const url = new URL(oq.url);
+      if (!oq.search) {
+        this.#description.innerText = `Press enter to go to ${url.host}`;
+      } else {
+        this.#description.innerText = `Press enter to search "${oq.search}" at ${url.host}`;
+      }
+
+      let suggestions = COMMANDS.get(oq.query)?.suggestions ?? [];
 
       if (oq.search && suggestions.length < CONFIG.suggestionLimit) {
         const res = await Search.#fetchSuggestions(oq.search);
